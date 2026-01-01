@@ -1,11 +1,10 @@
 'use server'
 
-import z from 'zod'
+import z, { string } from 'zod'
 import { auth } from './auth'
 
 async function authorize() {
   const session = await auth()
-  console.log({ session })
   if (!session) {
     throw new Error('Not authenticated')
   }
@@ -17,21 +16,24 @@ const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3'
 
 async function fetchYoutube(
   path: string,
-  params: Record<string, string | boolean | number>
+  params: Record<string, string | boolean | number>,
+  method = 'GET',
+  body?: Record<string, unknown>
 ) {
   const accessToken = await authorize()
-  console.log({ accessToken })
   const url = new URL(`${YOUTUBE_API_BASE}/${path}`)
 
   for (const [key, value] of Object.entries(params)) {
-    url.searchParams.set(key, value)
+    url.searchParams.set(key, value.toString())
   }
 
   const res = await fetch(url.toString(), {
+    method,
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: 'application/json',
     },
+    body: body ? JSON.stringify(body) : undefined,
   })
 
   if (!res.ok) {
@@ -95,8 +97,14 @@ const playlistItemResourceSchema = z.object({
     title: z.string(),
     description: z.string(),
     thumbnails: thumbnailMapResourceSchema,
+    resourceId: z.object({
+      videoId: z.string(),
+      kind: z.string(),
+    }),
   }),
 })
+
+type PlaylistItemResource = z.infer<typeof playlistItemResourceSchema>
 
 const playlistResponseSchema = googleResponseSchema.extend({
   items: z.array(playlistResourceSchema),
@@ -134,7 +142,6 @@ export async function listPlaylists(): Promise<Playlist[]> {
   })
 
   const data = playlistResponseSchema.parse(res)
-  console.log(res)
 
   const playlists =
     data.items.map((data) => ({
@@ -148,12 +155,13 @@ export async function listPlaylists(): Promise<Playlist[]> {
 
 export type PlaylistItem = {
   id: string
+  resourceId: PlaylistItemResource['snippet']['resourceId']
   title: string
   description: string
   thumbnail?: Thumbnail
 }
 
-export async function getItems(id: string): PlaylistItem[] {
+export async function getItems(id: string): Promise<PlaylistItem[]> {
   const res = await fetchYoutube('playlistItems', {
     part: 'snippet,contentDetails,status',
     playlistId: id,
@@ -164,8 +172,28 @@ export async function getItems(id: string): PlaylistItem[] {
 
   return data.items.map((item) => ({
     id: item.id,
+    resourceId: item.snippet.resourceId,
     title: item.snippet.title,
     description: item.snippet.description,
     thumbnail: findThumbnail(item.snippet.thumbnails),
   }))
+}
+
+export async function insertItem(
+  resourceId: PlaylistItem['resourceId'],
+  playlistId: string
+) {
+  await fetchYoutube(
+    'playlistItems',
+    {
+      part: 'snippet',
+    },
+    'POST',
+    {
+      snippet: {
+        playlistId,
+        resourceId,
+      },
+    }
+  )
 }
