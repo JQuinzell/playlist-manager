@@ -3,9 +3,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
 import { createContext, type FC, type ReactNode, useContext } from 'react'
-import { listPlaylists } from '@/youtube'
+import { listPlaylists, type Playlist } from '@/youtube'
 
-type PlaylistsContextValue = {}
+type PlaylistsContextValue = Playlist[]
 
 const PlaylistsContext = createContext<PlaylistsContextValue | null>(null)
 
@@ -18,7 +18,9 @@ export const PlaylistsProvider: FC<{ children: ReactNode }> = ({
   })
   console.log(playlists)
   return (
-    <PlaylistsContext.Provider value={{}}>{children}</PlaylistsContext.Provider>
+    <PlaylistsContext.Provider value={playlists ?? []}>
+      {children}
+    </PlaylistsContext.Provider>
   )
 }
 

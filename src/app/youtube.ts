@@ -31,11 +31,12 @@ interface ThumbnailMap {
   maxres?: Thumbnail
 }
 
-interface Playlist {
+export interface Playlist {
   id: string
   title: string
   thumbnails?: ThumbnailMap
 }
+
 export async function listPlaylists(): Promise<Playlist[]> {
   const youtube = await authorize()
   const nextPageToken = null
