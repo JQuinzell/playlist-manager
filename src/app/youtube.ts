@@ -1,34 +1,123 @@
 'use server'
 
-import { google } from 'googleapis'
+import z from 'zod'
 import { auth } from './auth'
 
 async function authorize() {
   const session = await auth()
-  console.log(session)
+  console.log({ session })
   if (!session) {
     throw new Error('Not authenticated')
   }
-  const oauth = new google.auth.OAuth2()
-  oauth.setCredentials({ access_token: (session as any).accessToken })
-  return google.youtube({
-    version: 'v3',
-    auth: oauth,
+  const accessToken: string = (session as any).accessToken
+  return accessToken
+}
+
+const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3'
+
+async function fetchYoutube(
+  path: string,
+  params: Record<string, string | boolean | number>
+) {
+  const accessToken = await authorize()
+  console.log({ accessToken })
+  const url = new URL(`${YOUTUBE_API_BASE}/${path}`)
+
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value)
+  }
+
+  const res = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: 'application/json',
+    },
   })
+
+  if (!res.ok) {
+    const error = await res.text()
+    throw new Error(`YouTube API error: ${res.status} - ${error}`)
+  }
+
+  return res.json()
 }
 
-interface Thumbnail {
-  url?: string | null
-  width?: number | null
-  height?: number | null
-}
+const googleResponseSchema = z.object({
+  kind: z.string(),
+  etag: z.string(),
+  pageInfo: z.object({
+    totalResults: z.number(),
+    resultsPerPage: z.number(),
+  }),
+})
 
-interface ThumbnailMap {
-  default?: Thumbnail
-  standard?: Thumbnail
-  medium?: Thumbnail
-  high?: Thumbnail
-  maxres?: Thumbnail
+export type Thumbnail = z.infer<typeof thumbnailResourceSchema>
+
+const thumbnailResourceSchema = z.object({
+  url: z.url(),
+  width: z.number(),
+  height: z.number(),
+})
+
+const thumbnailMapResourceSchema = z.record(
+  z.union([
+    z.literal('default'),
+    z.literal('medium'),
+    z.literal('high'),
+    z.literal('standard'),
+    z.literal('maxres'),
+  ]),
+  thumbnailResourceSchema.optional()
+)
+
+export type ThumbnailMap = z.infer<typeof thumbnailMapResourceSchema>
+
+const playlistResourceSchema = z.object({
+  kind: z.literal('youtube#playlist'),
+  etag: z.string(),
+  id: z.string(),
+  snippet: z.object({
+    publishedAt: z.iso.datetime(),
+    channelId: z.string(),
+    title: z.string(),
+    description: z.string(),
+    thumbnails: thumbnailMapResourceSchema,
+  }),
+})
+
+const playlistItemResourceSchema = z.object({
+  kind: z.literal('youtube#playlistItem'),
+  etag: z.string(),
+  id: z.string(),
+  snippet: z.object({
+    publishedAt: z.iso.datetime(),
+    channelId: z.string(),
+    title: z.string(),
+    description: z.string(),
+    thumbnails: thumbnailMapResourceSchema,
+  }),
+})
+
+const playlistResponseSchema = googleResponseSchema.extend({
+  items: z.array(playlistResourceSchema),
+})
+
+const playlistItemResponseSchema = googleResponseSchema.extend({
+  items: z.array(playlistItemResourceSchema),
+})
+
+function findThumbnail(thumbnails: ThumbnailMap): Thumbnail | undefined {
+  const keys_by_priority = [
+    'standard',
+    'high',
+    'medium',
+    'default',
+    'maxres',
+  ] as const
+  for (const key of keys_by_priority) {
+    const thumbnail = thumbnails[key]
+    if (thumbnail) return thumbnail
+  }
 }
 
 export interface Playlist {
@@ -38,21 +127,45 @@ export interface Playlist {
 }
 
 export async function listPlaylists(): Promise<Playlist[]> {
-  const youtube = await authorize()
-  const nextPageToken = null
-
-  const res = await youtube.playlists.list({
-    part: ['snippet', 'contentDetails', 'id'],
+  const res = await fetchYoutube('playlists', {
+    part: 'snippet,contentDetails,id',
     mine: true,
     maxResults: 50,
-    // pageToken: nextPageToken,
   })
 
+  const data = playlistResponseSchema.parse(res)
+  console.log(res)
+
   const playlists =
-    res.data.items?.map((data) => ({
-      id: data.id ?? '???',
-      title: data.snippet?.title ?? 'No Title',
-      thumbnails: data.snippet?.thumbnails,
+    data.items.map((data) => ({
+      id: data.id,
+      title: data.snippet.title,
+      thumbnails: data.snippet.thumbnails,
     })) ?? []
+
   return playlists
+}
+
+export type PlaylistItem = {
+  id: string
+  title: string
+  description: string
+  thumbnail?: Thumbnail
+}
+
+export async function getItems(id: string): PlaylistItem[] {
+  const res = await fetchYoutube('playlistItems', {
+    part: 'snippet,contentDetails,status',
+    playlistId: id,
+    maxResults: 50,
+  })
+
+  const data = playlistItemResponseSchema.parse(res)
+
+  return data.items.map((item) => ({
+    id: item.id,
+    title: item.snippet.title,
+    description: item.snippet.description,
+    thumbnail: findThumbnail(item.snippet.thumbnails),
+  }))
 }

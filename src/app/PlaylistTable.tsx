@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import type { FC } from 'react'
 import {
   Table,
@@ -26,7 +27,9 @@ export const PlaylistTable: FC = () => {
       <TableBody>
         {playlists.map((playlist) => (
           <TableRow key={playlist.id}>
-            <TableCell>{playlist.title}</TableCell>
+            <TableCell>
+              <Link href={`/playlists/${playlist.id}`}>{playlist.title}</Link>
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>
