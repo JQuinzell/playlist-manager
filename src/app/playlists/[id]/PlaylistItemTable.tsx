@@ -28,16 +28,22 @@ type Props = {
 }
 
 export const PlaylistItemTable: React.FC<Props> = ({ items, playlists }) => {
-  const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>(
-    {}
-  )
+  const [selectedItemsMap, setSelectedItemsMap] = useState<
+    Record<string, boolean>
+  >({})
 
   function toggleItem(item: PlaylistItem, selected: boolean) {
-    setSelectedItems((prev) => ({
+    setSelectedItemsMap((prev) => ({
       ...prev,
       [item.id]: selected,
     }))
   }
+
+  const selectedItems = Object.entries(selectedItemsMap)
+    .filter(([, selected]) => selected)
+    // kinda inefficient
+    .map(([id]) => items.find((item) => item.id === id))
+    .filter((item) => !!item)
 
   return (
     <Table>
@@ -53,7 +59,7 @@ export const PlaylistItemTable: React.FC<Props> = ({ items, playlists }) => {
         {items.map((item) => (
           <TableRow
             key={item.id}
-            data-state={selectedItems[item.id] ? 'selected' : ''}
+            data-state={selectedItemsMap[item.id] ? 'selected' : ''}
           >
             <TableCell>
               <Checkbox
@@ -85,7 +91,10 @@ export const PlaylistItemTable: React.FC<Props> = ({ items, playlists }) => {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent>
-                  <PlaylistCommand playlists={playlists} item={item} />
+                  <PlaylistCommand
+                    playlists={playlists}
+                    items={selectedItems}
+                  />
                 </PopoverContent>
               </Popover>
             </TableCell>

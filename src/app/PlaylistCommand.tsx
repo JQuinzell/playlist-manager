@@ -13,9 +13,9 @@ import { insertItem, type Playlist, type PlaylistItem } from './youtube'
 
 interface Props {
   playlists: Playlist[]
-  item: PlaylistItem
+  items: PlaylistItem[]
 }
-export const PlaylistCommand: React.FC<Props> = ({ playlists, item }) => {
+export const PlaylistCommand: React.FC<Props> = ({ playlists, items }) => {
   return (
     <Command>
       <CommandInput placeholder='Type a command or search...' />
@@ -26,8 +26,16 @@ export const PlaylistCommand: React.FC<Props> = ({ playlists, item }) => {
           {playlists.map((playlist) => (
             <CommandItem
               key={playlist.id}
-              onSelect={() => {
-                insertItem(item.resourceId, playlist.id)
+              onSelect={async () => {
+                const results = await Promise.allSettled(
+                  items.map((item) => insertItem(item.resourceId, playlist.id))
+                )
+                const rejected = results.filter(
+                  (result) => result.status === 'rejected'
+                )
+                if (rejected.length > 0) {
+                  console.log(rejected)
+                }
               }}
             >
               {playlist.title}
