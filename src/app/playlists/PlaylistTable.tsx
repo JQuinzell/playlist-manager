@@ -54,9 +54,11 @@ function usePagination<T>(pageSize: number, items: T[]) {
       setActivePage(page)
     },
     nextPage() {
+      if (activePage === numPages) return
       setActivePage((prev) => prev + 1)
     },
     previousPage() {
+      if (activePage === 1) return
       setActivePage((prev) => prev - 1)
     },
   }
@@ -65,7 +67,7 @@ function usePagination<T>(pageSize: number, items: T[]) {
 export const PlaylistTable: FC = () => {
   const playlists = usePlaylistsContext()
   const [isEdit, setIsEdit] = useState(false)
-  const paginator = usePagination(5, playlists)
+  const paginator = usePagination(15, playlists)
 
   return (
     <div className='max-w-[750px] w-full'>
