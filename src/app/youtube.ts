@@ -41,7 +41,9 @@ async function fetchYoutube(
     throw new Error(`YouTube API error: ${res.status} - ${error}`)
   }
 
-  return res.json()
+  if (res.status !== 204) {
+    return res.json()
+  }
 }
 
 const googleResponseSchema = z.object({
@@ -195,5 +197,15 @@ export async function insertItem(
         resourceId,
       },
     }
+  )
+}
+
+export async function deleteItem(id: string) {
+  await fetchYoutube(
+    'playlistItems',
+    {
+      id,
+    },
+    'DELETE'
   )
 }

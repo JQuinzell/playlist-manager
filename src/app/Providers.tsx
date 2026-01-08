@@ -6,9 +6,9 @@ import { PlaylistsProvider } from './PlaylistsProvider'
 
 const queryClient = new QueryClient()
 
-export const Providers: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const Providers: React.FC<{
+  children: React.ReactNode
+}> = ({ children }) => {
   return (
     <ThemeProvider
       attribute='class'

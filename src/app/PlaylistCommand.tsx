@@ -9,7 +9,12 @@ import {
   CommandList,
   CommandSeparator,
 } from './components/ui/command'
-import { insertItem, type Playlist, type PlaylistItem } from './youtube'
+import {
+  deleteItem,
+  insertItem,
+  type Playlist,
+  type PlaylistItem,
+} from './youtube'
 
 interface Props {
   playlists: Playlist[]
@@ -28,7 +33,10 @@ export const PlaylistCommand: React.FC<Props> = ({ playlists, items }) => {
               key={playlist.id}
               onSelect={async () => {
                 const results = await Promise.allSettled(
-                  items.map((item) => insertItem(item.resourceId, playlist.id))
+                  items.map(async (item) => {
+                    await insertItem(item.resourceId, playlist.id)
+                    await deleteItem(item.id)
+                  })
                 )
                 const rejected = results.filter(
                   (result) => result.status === 'rejected'

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
 import {
   Popover,
   PopoverContent,
@@ -20,14 +21,16 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { PlaylistCommand } from '@/PlaylistCommand'
-import type { Playlist, PlaylistItem } from '@/youtube'
+import { usePlaylistsContext } from '@/PlaylistsProvider'
+import { useSelectedPlaylistContext } from '@/SelectedPlaylistProvider'
+import type { PlaylistItem } from '@/youtube'
+import { CreatePlaylistButton } from './CreatePlaylistButton'
 
-type Props = {
-  items: PlaylistItem[]
-  playlists: Playlist[]
-}
+type Props = {}
 
-export const PlaylistItemTable: React.FC<Props> = ({ items, playlists }) => {
+export const PlaylistItemTable: React.FC<Props> = () => {
+  const playlists = usePlaylistsContext()
+  const { items } = useSelectedPlaylistContext()
   const [selectedItemsMap, setSelectedItemsMap] = useState<
     Record<string, boolean>
   >({})

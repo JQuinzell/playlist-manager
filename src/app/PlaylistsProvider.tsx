@@ -1,7 +1,6 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { useSession } from 'next-auth/react'
 import { createContext, type FC, type ReactNode, useContext } from 'react'
 import { listPlaylists, type Playlist } from '@/youtube'
 
@@ -16,7 +15,7 @@ export const PlaylistsProvider: FC<{ children: ReactNode }> = ({
     queryKey: ['playlists'],
     queryFn: listPlaylists,
   })
-  console.log(playlists)
+
   return (
     <PlaylistsContext.Provider value={playlists ?? []}>
       {children}
