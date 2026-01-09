@@ -98,7 +98,7 @@ export const PlaylistTable: FC = () => {
               <TableCell>{playlist.title}</TableCell>
               <TableCell className='w-[1%] whitespace-nowrap'>
                 <DropdownMenu>
-                  <DropdownMenuTrigger>
+                  <DropdownMenuTrigger asChild>
                     <Button variant='ghost' size='icon'>
                       <Ellipsis />
                     </Button>
