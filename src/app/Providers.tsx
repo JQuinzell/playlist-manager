@@ -1,6 +1,7 @@
 'use client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SessionProvider } from 'next-auth/react'
+import { ConvexClientProvider } from './ConvexClientProvider'
 import { ThemeProvider } from './components/theme-provider'
 import { PlaylistsProvider } from './PlaylistsProvider'
 
@@ -16,11 +17,13 @@ export const Providers: React.FC<{
       enableSystem
       disableTransitionOnChange
     >
-      <QueryClientProvider client={queryClient}>
-        <SessionProvider>
-          <PlaylistsProvider>{children}</PlaylistsProvider>
-        </SessionProvider>
-      </QueryClientProvider>
+      <ConvexClientProvider>
+        <QueryClientProvider client={queryClient}>
+          <SessionProvider>
+            <PlaylistsProvider>{children}</PlaylistsProvider>
+          </SessionProvider>
+        </QueryClientProvider>
+      </ConvexClientProvider>
     </ThemeProvider>
   )
 }
