@@ -14,6 +14,7 @@ export const PlaylistsProvider: FC<{ children: ReactNode }> = ({
   const { data: playlists } = useQuery({
     queryKey: ['playlists'],
     queryFn: listPlaylists,
+    retry: false,
   })
 
   return (

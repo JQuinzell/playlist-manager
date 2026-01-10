@@ -1,10 +1,12 @@
 'use server'
 
 import z, { string } from 'zod'
-import { auth } from './auth'
+import { api } from '@/convex/_generated/api'
+import { fetchAuthQuery } from '@/lib/auth-server'
 
 async function authorize() {
-  const session = await auth()
+  const session = await fetchAuthQuery(api.auth.getAccessToken)
+  console.log({ session })
   if (!session) {
     throw new Error('Not authenticated')
   }

@@ -1,14 +1,16 @@
-import { signIn } from '@/auth'
+'use client'
+
+import { authClient } from '@/lib/auth-client'
 
 export default function SignIn() {
+  async function handleSignIn() {
+    await authClient.signIn.social({
+      provider: 'google',
+    })
+  }
   return (
-    <form
-      action={async () => {
-        'use server'
-        await signIn('google')
-      }}
-    >
-      <button type='submit'>Signin with Google</button>
-    </form>
+    <button type='button' onClick={handleSignIn}>
+      Signin with Google
+    </button>
   )
 }
