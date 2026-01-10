@@ -98,7 +98,7 @@ export const PlaylistTable: FC = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {paginator.visibleItems.map((playlist) => (
+          {playlists.map((playlist) => (
             <TableRow key={playlist.id}>
               {isEdit && (
                 <TableCell className='w-[1%] whitespace-nowrap'>

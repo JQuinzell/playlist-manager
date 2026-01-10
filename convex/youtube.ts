@@ -9,14 +9,14 @@ const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3'
 async function fetchYoutube(
   path: string,
   options: RequestInit & {
-    params?: Record<string, string | boolean | number>
+    params?: Record<string, string | boolean | number | undefined>
     accessToken: string
   }
 ) {
   const url = new URL(`${YOUTUBE_API_BASE}/${path}`)
 
   for (const [key, value] of Object.entries(options.params ?? {})) {
-    url.searchParams.set(key, value.toString())
+    if (value !== undefined) url.searchParams.set(key, value.toString())
   }
 
   const res = await fetch(url.toString(), {
@@ -107,6 +107,8 @@ const playlistResponseSchema = googleResponseSchema.extend({
 
 const playlistItemResponseSchema = googleResponseSchema.extend({
   items: z.array(playlistItemResourceSchema),
+  nextPageToken: z.string().optional(),
+  prevPageToken: z.string().optional(),
 })
 
 function findThumbnail(thumbnails: ThumbnailMap): Thumbnail | undefined {
@@ -161,26 +163,31 @@ export type PlaylistItem = {
 
 export async function getItems(
   id: string,
-  accessToken: string
-): Promise<PlaylistItem[]> {
+  accessToken: string,
+  pageToken?: string
+): Promise<{ items: PlaylistItem[]; nextPageToken: string | null }> {
   const res = await fetchYoutube('playlistItems', {
     params: {
       part: 'snippet,contentDetails,status',
       playlistId: id,
       maxResults: 50,
+      pageToken,
     },
     accessToken,
   })
 
   const data = playlistItemResponseSchema.parse(res)
 
-  return data.items.map((item) => ({
-    id: item.id,
-    resourceId: item.snippet.resourceId,
-    title: item.snippet.title,
-    description: item.snippet.description,
-    thumbnail: findThumbnail(item.snippet.thumbnails),
-  }))
+  return {
+    items: data.items.map((item) => ({
+      id: item.id,
+      resourceId: item.snippet.resourceId,
+      title: item.snippet.title,
+      description: item.snippet.description,
+      thumbnail: findThumbnail(item.snippet.thumbnails),
+    })),
+    nextPageToken: data.nextPageToken ?? null,
+  }
 }
 
 export async function insertItem(

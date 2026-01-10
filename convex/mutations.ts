@@ -51,7 +51,13 @@ export const importYoutubePlaylistAction = action({
     const playlists = await youtube.listPlaylists(accessToken)
     const playlist = playlists.find((pl) => pl.id === args.playlistId)
     if (!playlist) return false
-    const items = await youtube.getItems(args.playlistId, accessToken)
+    const items: youtube.PlaylistItem[] = []
+    let nextPage: string | undefined
+    do {
+      const res = await youtube.getItems(args.playlistId, accessToken, nextPage)
+      items.push(...res.items)
+      nextPage = res.nextPageToken || undefined
+    } while (nextPage)
     await ctx.runMutation(api.mutations.importYoutubePlaylist, {
       playlist: {
         id: playlist.id,
