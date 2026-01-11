@@ -1,8 +1,26 @@
 import { v } from 'convex/values'
 import { api } from './_generated/api'
-import { action, mutation } from './_generated/server'
+import { action, type MutationCtx, mutation } from './_generated/server'
 import { authComponent, createAuth } from './auth'
 import * as youtube from './youtube'
+
+async function getUser(ctx: MutationCtx) {
+  const authUser = await authComponent.getAuthUser(ctx)
+
+  const existing = await ctx.db
+    .query('users')
+    .withIndex('by_authId', (q) => q.eq('authId', authUser._id))
+    .unique()
+
+  if (existing) return existing
+
+  const id = await ctx.db.insert('users', {
+    authId: authUser._id,
+  })
+
+  // biome-ignore lint/style/noNonNullAssertion: We just inserted so it is there
+  return (await ctx.db.get(id))!
+}
 
 export const importYoutubePlaylist = mutation({
   args: {
@@ -19,6 +37,7 @@ export const importYoutubePlaylist = mutation({
   },
   handler: async (ctx, args) => {
     const { auth, headers } = await authComponent.getAuth(createAuth, ctx)
+    const user = await getUser(ctx)
     const { accessToken } = await auth.api.getAccessToken({
       body: {
         providerId: 'google',
@@ -28,12 +47,14 @@ export const importYoutubePlaylist = mutation({
 
     const newPlaylistId = await ctx.db.insert('playlists', {
       name: args.playlist.title,
+      user: user._id,
     })
     const queries = args.playlist.items.map(async (item) => {
       const itemId = await ctx.db.insert('items', {
         name: item.title,
         source: 'youtube',
         resourceId: item.resourceId,
+        user: user._id,
       })
       await ctx.db.insert('entries', {
         playlist: newPlaylistId,
