@@ -47,7 +47,7 @@ function usePagination<T>(pageSize: number, items: T[]) {
       page,
     })
   )
-  const startIndex = activePage - 1
+  const startIndex = (activePage - 1) * pageSize
   const visibleItems = items.slice(startIndex, startIndex + pageSize)
 
   return {
@@ -98,7 +98,7 @@ export const PlaylistTable: FC = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {playlists.map((playlist) => (
+          {paginator.visibleItems.map((playlist) => (
             <TableRow key={playlist.id}>
               {isEdit && (
                 <TableCell className='w-[1%] whitespace-nowrap'>
