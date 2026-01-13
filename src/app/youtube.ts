@@ -1,16 +1,16 @@
 'use server'
 
-import z, { string } from 'zod'
-import { api } from '@/convex/_generated/api'
-import { fetchAuthQuery } from '@/lib/auth-server'
+import { headers } from 'next/headers'
+import z from 'zod'
+import { auth } from '../lib/auth'
 
 async function authorize() {
-  const session = await fetchAuthQuery(api.auth.getAccessToken)
-  console.log({ session })
-  if (!session) {
-    throw new Error('Not authenticated')
-  }
-  const accessToken: string = (session as any).accessToken
+  const { accessToken } = await auth.api.getAccessToken({
+    body: {
+      providerId: 'google',
+    },
+    headers: await headers(),
+  })
   return accessToken
 }
 

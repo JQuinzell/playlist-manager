@@ -1,6 +1,12 @@
 import { betterAuth } from 'better-auth'
+import { nextCookies } from 'better-auth/next-js'
+import { db } from '../db/database'
 
 export const auth = betterAuth({
+  database: {
+    type: 'postgres',
+    db,
+  },
   socialProviders: {
     google: {
       clientId: process.env.AUTH_GOOGLE_ID!,
@@ -13,4 +19,5 @@ export const auth = betterAuth({
       ],
     },
   },
+  plugins: [nextCookies()],
 })

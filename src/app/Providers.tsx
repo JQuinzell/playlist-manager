@@ -1,6 +1,5 @@
 'use client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ConvexClientProvider } from './ConvexClientProvider'
 import { ThemeProvider } from './components/theme-provider'
 import { PlaylistsProvider } from './PlaylistsProvider'
 
@@ -16,11 +15,9 @@ export const Providers: React.FC<{
       enableSystem
       disableTransitionOnChange
     >
-      <ConvexClientProvider>
-        <QueryClientProvider client={queryClient}>
-          <PlaylistsProvider>{children}</PlaylistsProvider>
-        </QueryClientProvider>
-      </ConvexClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <PlaylistsProvider>{children}</PlaylistsProvider>
+      </QueryClientProvider>
     </ThemeProvider>
   )
 }
