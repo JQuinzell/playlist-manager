@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/pagination'
 import { api } from '@/convex/_generated/api'
 import type { Playlist } from '@/youtube'
+import { importYoutubePlaylist } from '../../db/queries'
 import {
   Table,
   TableBody,
@@ -36,6 +37,7 @@ import {
 } from '../components/ui/table'
 import { usePlaylistsContext } from '../PlaylistsProvider'
 import { CreatePlaylistButton } from './[id]/CreatePlaylistButton'
+import { handleImportPlaylist } from './actions'
 
 function usePagination<T>(pageSize: number, items: T[]) {
   const [activePage, setActivePage] = useState(1)
@@ -71,13 +73,6 @@ export const PlaylistTable: FC = () => {
   const playlists = usePlaylistsContext()
   const [isEdit, setIsEdit] = useState(false)
   const paginator = usePagination(15, playlists)
-  const importYoutubePlaylist = useAction(
-    api.mutations.importYoutubePlaylistAction
-  )
-
-  function handleImportPlaylist(playlist: Playlist) {
-    importYoutubePlaylist({ playlistId: playlist.id })
-  }
 
   return (
     <div className='max-w-[750px] w-full'>

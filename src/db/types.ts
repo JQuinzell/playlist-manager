@@ -3,22 +3,21 @@ import type { Generated, Insertable, Selectable, Updateable } from 'kysely'
 export interface Database {
   playlist: PlaylistTable
   playlistEntry: PlaylistEntryTable
-  user: UserTable
   item: ItemTable
 }
 
 export interface PlaylistTable {
   id: Generated<number>
   name: string
-  userId: number
-  resourceId: number
-  thumbnail: string
+  userId: string
+  resourceId: string
+  // thumbnail: string
 }
 
 export interface PlaylistEntryTable {
   id: Generated<number>
-  playlistId: string
-  itemId: string
+  playlistId: number
+  itemId: number
 }
 
 // may eventually have more
@@ -29,12 +28,7 @@ export interface ItemTable {
   name: string
   resourceId: string
   source: Sources
-  userId: number
-}
-
-export interface UserTable {
-  id: Generated<number>
-  authId: number
+  userId: string
 }
 
 export type Playlist = Selectable<PlaylistTable>

@@ -18,24 +18,25 @@ const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3'
 
 async function fetchYoutube(
   path: string,
-  params: Record<string, string | boolean | number>,
-  method = 'GET',
-  body?: Record<string, unknown>
+  options: RequestInit & {
+    params?: Record<string, string | boolean | number | undefined>
+  }
 ) {
   const accessToken = await authorize()
   const url = new URL(`${YOUTUBE_API_BASE}/${path}`)
 
-  for (const [key, value] of Object.entries(params)) {
-    url.searchParams.set(key, value.toString())
+  for (const [key, value] of Object.entries(options.params ?? {})) {
+    if (value !== undefined) url.searchParams.set(key, value.toString())
   }
 
   const res = await fetch(url.toString(), {
-    method,
+    method: options.method || 'GET',
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: 'application/json',
+      ...options.headers,
     },
-    body: body ? JSON.stringify(body) : undefined,
+    body: options.body ? JSON.stringify(options.body) : undefined,
   })
 
   if (!res.ok) {
@@ -116,6 +117,8 @@ const playlistResponseSchema = googleResponseSchema.extend({
 
 const playlistItemResponseSchema = googleResponseSchema.extend({
   items: z.array(playlistItemResourceSchema),
+  nextPageToken: z.string().optional(),
+  prevPageToken: z.string().optional(),
 })
 
 function findThumbnail(thumbnails: ThumbnailMap): Thumbnail | undefined {
@@ -140,9 +143,11 @@ export interface Playlist {
 
 export async function listPlaylists(): Promise<Playlist[]> {
   const res = await fetchYoutube('playlists', {
-    part: 'snippet,contentDetails,id',
-    mine: true,
-    maxResults: 50,
+    params: {
+      part: 'snippet,contentDetails,id',
+      mine: true,
+      maxResults: 50,
+    },
   })
 
   const data = playlistResponseSchema.parse(res)
@@ -165,49 +170,56 @@ export type PlaylistItem = {
   thumbnail?: Thumbnail
 }
 
-export async function getItems(id: string): Promise<PlaylistItem[]> {
+export async function getItems(
+  id: string,
+  pageToken?: string
+): Promise<{ items: PlaylistItem[]; nextPageToken: string | null }> {
   const res = await fetchYoutube('playlistItems', {
-    part: 'snippet,contentDetails,status',
-    playlistId: id,
-    maxResults: 50,
+    params: {
+      part: 'snippet,contentDetails,status',
+      playlistId: id,
+      maxResults: 50,
+      pageToken,
+    },
   })
 
   const data = playlistItemResponseSchema.parse(res)
 
-  return data.items.map((item) => ({
-    id: item.id,
-    resourceId: item.snippet.resourceId,
-    title: item.snippet.title,
-    description: item.snippet.description,
-    thumbnail: findThumbnail(item.snippet.thumbnails),
-  }))
+  return {
+    items: data.items.map((item) => ({
+      id: item.id,
+      resourceId: item.snippet.resourceId,
+      title: item.snippet.title,
+      description: item.snippet.description,
+      thumbnail: findThumbnail(item.snippet.thumbnails),
+    })),
+    nextPageToken: data.nextPageToken ?? null,
+  }
 }
 
 export async function insertItem(
   resourceId: PlaylistItem['resourceId'],
   playlistId: string
 ) {
-  await fetchYoutube(
-    'playlistItems',
-    {
+  await fetchYoutube('playlistItems', {
+    params: {
       part: 'snippet',
     },
-    'POST',
-    {
+    method: 'POST',
+    body: JSON.stringify({
       snippet: {
         playlistId,
         resourceId,
       },
-    }
-  )
+    }),
+  })
 }
 
 export async function deleteItem(id: string) {
-  await fetchYoutube(
-    'playlistItems',
-    {
+  await fetchYoutube('playlistItems', {
+    method: 'DELETE',
+    params: {
       id,
     },
-    'DELETE'
-  )
+  })
 }
